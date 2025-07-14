@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: dashboard_maker_db
+    environment:
+      POSTGRES_DB: dashboard_maker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - dashboard_network
+
+  backend:
+    build: ./backend
+    container_name: dashboard_maker_backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dashboard_maker
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      JWT_SECRET: your-secret-key-here-make-it-long-and-secure-in-production
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - dashboard_network
+
+  frontend:
+    build: ./frontend
+    container_name: dashboard_maker_frontend
+    environment:
+      VITE_API_URL: http://localhost:8080/api
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - dashboard_network
+
+volumes:
+  postgres_data:
+
+networks:
+  dashboard_network:
+    driver: bridge 
