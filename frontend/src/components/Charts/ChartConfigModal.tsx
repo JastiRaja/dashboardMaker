@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, BarChart3, PieChart, TrendingUp, Table } from 'lucide-react';
+import { X, BarChart3, PieChart, TrendingUp, Table, AreaChart, ScatterChart, Radar, Layers } from 'lucide-react';
 import { ChartConfig, Dataset } from '../../types';
 import Select from 'react-select';
 
@@ -12,10 +12,14 @@ interface ChartConfigModalProps {
 }
 
 const chartTypes = [
-  { value: 'bar', label: 'Bar Chart', icon: BarChart3 },
-  { value: 'pie', label: 'Pie Chart', icon: PieChart },
-  { value: 'line', label: 'Line Chart', icon: TrendingUp },
-  { value: 'table', label: 'Table', icon: Table },
+  { value: 'bar', label: 'Bar Chart', icon: BarChart3, description: 'Compare values across categories' },
+  { value: 'line', label: 'Line Chart', icon: TrendingUp, description: 'Show trends over time' },
+  { value: 'area', label: 'Area Chart', icon: AreaChart, description: 'Show trends with filled areas' },
+  { value: 'pie', label: 'Pie Chart', icon: PieChart, description: 'Display proportions of a whole' },
+  { value: 'scatter', label: 'Scatter Plot', icon: ScatterChart, description: 'Show correlation between variables' },
+  { value: 'radar', label: 'Radar Chart', icon: Radar, description: 'Compare multiple variables' },
+  { value: 'composed', label: 'Composed Chart', icon: Layers, description: 'Combine bar and line charts' },
+  { value: 'table', label: 'Data Table', icon: Table, description: 'Display raw data in table format' },
 ] as const;
 
 const aggregationOptions = [
@@ -35,6 +39,34 @@ const operatorOptions = [
   { value: 'gte', label: '≥' },
   { value: 'lte', label: '≤' },
   { value: 'contains', label: 'Contains' },
+];
+
+// Chart templates for quick setup
+const chartTemplates = [
+  {
+    name: 'Sales Overview',
+    type: 'composed' as const,
+    description: 'Bar chart with trend line for sales data',
+    settings: { width: 600, height: 400, colors: ['#8884d8', '#82ca9d'] }
+  },
+  {
+    name: 'Performance Metrics',
+    type: 'radar' as const,
+    description: 'Radar chart for multi-dimensional performance data',
+    settings: { width: 500, height: 400, colors: ['#0088FE'] }
+  },
+  {
+    name: 'Trend Analysis',
+    type: 'area' as const,
+    description: 'Area chart for trend visualization',
+    settings: { width: 600, height: 350, colors: ['#00C49F'] }
+  },
+  {
+    name: 'Correlation Study',
+    type: 'scatter' as const,
+    description: 'Scatter plot for correlation analysis',
+    settings: { width: 500, height: 400, colors: ['#FFBB28'] }
+  }
 ];
 
 const ChartConfigModal: React.FC<ChartConfigModalProps> = ({
@@ -62,6 +94,7 @@ const ChartConfigModal: React.FC<ChartConfigModalProps> = ({
   const [filters, setFilters] = useState([
     { column: '', operator: 'eq', value: '' },
   ]);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const selectedDataset = datasets.find(d => d.id === config.datasetId);
 
@@ -96,18 +129,30 @@ const ChartConfigModal: React.FC<ChartConfigModalProps> = ({
   const handleAddFilter = () => {
     setFilters([...filters, { column: '', operator: 'eq', value: '' }]);
   };
+  
   const handleRemoveFilter = (idx: number) => {
     setFilters(filters.filter((_, i) => i !== idx));
   };
+  
   const handleFilterChange = (idx: number, field: string, value: string) => {
     setFilters(filters.map((f, i) => (i === idx ? { ...f, [field]: value } : f)));
+  };
+
+  const applyTemplate = (template: typeof chartTemplates[0]) => {
+    setConfig({
+      ...config,
+      type: template.type,
+      title: template.name,
+      settings: template.settings
+    });
+    setShowTemplates(false);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
             {initialConfig ? 'Edit Chart' : 'Add Chart'}
@@ -121,6 +166,38 @@ const ChartConfigModal: React.FC<ChartConfigModalProps> = ({
         </div>
 
         <div className="space-y-4">
+          {/* Chart Templates Section */}
+          {!initialConfig && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Quick Templates
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowTemplates(!showTemplates)}
+                  className="text-sm text-indigo-600 hover:text-indigo-700"
+                >
+                  {showTemplates ? 'Hide Templates' : 'Show Templates'}
+                </button>
+              </div>
+              {showTemplates && (
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {chartTemplates.map((template) => (
+                    <button
+                      key={template.name}
+                      onClick={() => applyTemplate(template)}
+                      className="p-3 border border-gray-200 rounded-lg text-left hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
+                    >
+                      <div className="font-medium text-sm text-gray-900">{template.name}</div>
+                      <div className="text-xs text-gray-600">{template.description}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Chart Title *
@@ -163,14 +240,17 @@ const ChartConfigModal: React.FC<ChartConfigModalProps> = ({
                   <button
                     key={type.value}
                     onClick={() => setConfig({ ...config, type: type.value })}
-                    className={`flex items-center space-x-2 p-3 border rounded-md transition-colors ${
+                    className={`flex items-start space-x-2 p-3 border rounded-md transition-colors text-left ${
                       config.type === type.value
                         ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                         : 'border-gray-300 hover:border-gray-400'
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
-                    <span className="text-sm">{type.label}</span>
+                    <Icon className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="text-sm font-medium">{type.label}</span>
+                      <div className="text-xs text-gray-600">{type.description}</div>
+                    </div>
                   </button>
                 );
               })}
@@ -231,6 +311,7 @@ const ChartConfigModal: React.FC<ChartConfigModalProps> = ({
               ))}
             </select>
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Group By
@@ -244,6 +325,7 @@ const ChartConfigModal: React.FC<ChartConfigModalProps> = ({
               placeholder="Select columns to group by"
             />
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Filters

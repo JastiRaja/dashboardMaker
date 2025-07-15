@@ -35,7 +35,7 @@ export interface Dataset {
 
 export interface ChartConfig {
   id: string;
-  type: 'bar' | 'pie' | 'line' | 'table';
+  type: 'bar' | 'pie' | 'line' | 'table' | 'area' | 'scatter' | 'radar' | 'composed';
   title: string;
   datasetId?: number;
   xAxis?: string;

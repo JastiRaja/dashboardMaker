@@ -80,6 +80,7 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
   };
 
   const handleEditChart = (widget: DashboardWidget) => {
+    console.log('Edit chart clicked:', widget);
     setEditingWidget(widget);
     setIsConfigModalOpen(true);
   };
@@ -97,7 +98,11 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
   };
 
   const handleDeleteChart = (widgetId: string) => {
-    setWidgets(widgets.filter(widget => widget.i !== widgetId));
+    console.log('Delete chart clicked:', widgetId);
+    if (window.confirm('Are you sure you want to delete this chart?')) {
+      setWidgets(widgets.filter(widget => widget.i !== widgetId));
+      toast.success('Chart deleted successfully');
+    }
   };
 
   const handleSave = async () => {
@@ -253,33 +258,53 @@ const DashboardBuilder: React.FC<DashboardBuilderProps> = ({
               {widgets.map((widget) => {
                 const dataset = getDatasetForWidget(widget);
                 return (
-                  <div key={widget.i} className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div key={widget.i} className={`bg-white border rounded-lg p-4 relative ${
+                    editingWidget?.i === widget.i 
+                      ? 'border-indigo-300 bg-indigo-50' 
+                      : 'border-gray-200'
+                  }`}>
                     {!isReadOnly && (
-                      <div className="flex justify-end space-x-1 mb-2">
+                      <div className="absolute top-2 right-2 z-20 flex space-x-1 bg-white rounded-md shadow-lg border border-gray-200 p-1">
                         <button
                           onClick={() => handleEditChart(widget)}
-                          className="p-1 text-gray-400 hover:text-gray-600"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleEditChart(widget);
+                            }
+                          }}
+                          className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          title="Edit Chart (or press Enter)"
                         >
                           <Settings className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteChart(widget.i)}
-                          className="p-1 text-gray-400 hover:text-red-600"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleDeleteChart(widget.i);
+                            }
+                          }}
+                          className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                          title="Delete Chart (or press Enter)"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     )}
-                    {dataset ? (
-                      <ChartRenderer
-                        config={widget.chartConfig}
-                        data={dataset.data}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-gray-500">
-                        Dataset not found
-                      </div>
-                    )}
+                    <div className={!isReadOnly ? "pt-8" : ""}>
+                      {dataset ? (
+                        <ChartRenderer
+                          config={widget.chartConfig}
+                          data={dataset.data}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-500">
+                          Dataset not found
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
